@@ -11,7 +11,11 @@ import {
   RotateCcw,
   CheckCircle2,
   Building2,
-  Award
+  Award,
+  Layers,
+  Share2,
+  Coins,
+  Calculator
 } from 'lucide-react';
 import { 
   ResponsiveContainer, 
@@ -33,7 +37,6 @@ interface AnalisaProps {
   records: PendapatanRecord[];
 }
 
-// Sophisticated cream/forest/gold color palette for charts
 const CLIENT_CHART_COLORS = [
   '#182622', // Deep forest pine
   '#C4A47C', // Warm gold
@@ -69,7 +72,7 @@ export const Analisa: React.FC<AnalisaProps> = ({ records }) => {
     return filteredRecords.reduce((acc, curr) => acc + curr.jumlah, 0);
   }, [filteredRecords]);
 
-  // Card 2: Total Bulan Ini (berdasarkan bulan berjalan saat ini: September 2026 atau bulan lokal)
+  // Card 2: Total Bulan Ini
   const totalBulanIni = useMemo(() => {
     const now = new Date();
     const currentYearMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
@@ -82,6 +85,44 @@ export const Analisa: React.FC<AnalisaProps> = ({ records }) => {
   const jumlahClientAktif = useMemo(() => {
     const unique = new Set(filteredRecords.map((r) => r.namaClient).filter(Boolean));
     return unique.size;
+  }, [filteredRecords]);
+
+  // 5 Fee Components Analytics
+  const feeBreakdown = useMemo(() => {
+    const totals = filteredRecords.reduce(
+      (acc, curr) => {
+        acc.interview += curr.feeInterview || 0;
+        acc.ojt += curr.feeOjt || 0;
+        acc.selesaiOjt += curr.feeSelesaiOjt || 0;
+        acc.management += curr.feeManagement || 0;
+        acc.grossSalary += curr.feeGrossSalary || 0;
+        return acc;
+      },
+      { interview: 0, ojt: 0, selesaiOjt: 0, management: 0, grossSalary: 0 }
+    );
+
+    const total = totalPendapatanSemua || 1;
+    return [
+      { name: 'Fee Interview', amount: totals.interview, pct: (totals.interview / total) * 100 },
+      { name: 'Fee OJT', amount: totals.ojt, pct: (totals.ojt / total) * 100 },
+      { name: 'Fee Selesai OJT', amount: totals.selesaiOjt, pct: (totals.selesaiOjt / total) * 100 },
+      { name: 'Fee Management', amount: totals.management, pct: (totals.management / total) * 100 },
+      { name: 'Fee 45% Gaji Bruto', amount: totals.grossSalary, pct: (totals.grossSalary / total) * 100 },
+    ];
+  }, [filteredRecords, totalPendapatanSemua]);
+
+  // Cluster & Sources breakdown
+  const clusterBreakdown = useMemo(() => {
+    const stagesTotal = filteredRecords.filter((r) => r.cluster === 'Stages').reduce((a, c) => a + c.jumlah, 0);
+    const fractionalTotal = filteredRecords.filter((r) => r.cluster === 'Fractional').reduce((a, c) => a + c.jumlah, 0);
+    return { stagesTotal, fractionalTotal };
+  }, [filteredRecords]);
+
+  const sourcesBreakdown = useMemo(() => {
+    const internal = filteredRecords.filter((r) => r.sources === 'INTERNAL').reduce((a, c) => a + c.jumlah, 0);
+    const eksternal = filteredRecords.filter((r) => r.sources === 'EKSTERNAL').reduce((a, c) => a + c.jumlah, 0);
+    const massive = filteredRecords.filter((r) => r.sources === 'MASSIVE').reduce((a, c) => a + c.jumlah, 0);
+    return { internal, eksternal, massive };
   }, [filteredRecords]);
 
   // Quick Date Preset Handlers
@@ -111,7 +152,6 @@ export const Analisa: React.FC<AnalisaProps> = ({ records }) => {
     }
   };
 
-  // Reset Date Filter
   const handleResetDateFilter = () => {
     setStartDate('');
     setEndDate('');
@@ -119,9 +159,7 @@ export const Analisa: React.FC<AnalisaProps> = ({ records }) => {
   };
 
   // Grafik 1: Bar chart total pendapatan per bulan (12 bulan terakhir)
-  // Generates 12 monthly slots up to current month and calculates revenue from filtered records
   const monthlyBarData = useMemo(() => {
-    // Generate sequence of 12 months ending at current month
     const months: Array<{ key: string; label: string; total: number; count: number }> = [];
     const now = new Date();
 
@@ -164,10 +202,8 @@ export const Analisa: React.FC<AnalisaProps> = ({ records }) => {
       percentage: totalPendapatanSemua > 0 ? (clientMap[name].total / totalPendapatanSemua) * 100 : 0,
     }));
 
-    // Sort descending by revenue
     list.sort((a, b) => b.total - a.total);
 
-    // Prepare top 5 + "Lainnya" for clean pie visualization
     if (list.length > 5) {
       const top5 = list.slice(0, 5);
       const others = list.slice(5);
@@ -195,10 +231,10 @@ export const Analisa: React.FC<AnalisaProps> = ({ records }) => {
 
   return (
     <div className="space-y-8 animate-fadeIn">
-      {/* Top 3 Summary Cards (as specified in Menu 2 Analisa) */}
+      {/* Top 3 Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
         
-        {/* Card 1: Total Pendapatan (Semua / Akumulatif) */}
+        {/* Card 1: Total Pendapatan (Semua) */}
         <div className="bg-[#FFFFFF] border border-[#E8DFD3] rounded-3xl p-6 shadow-xs relative overflow-hidden">
           <div className="flex items-center justify-between mb-2">
             <span className="text-[11px] font-bold uppercase tracking-widest text-[#8C7D6B]">
@@ -213,7 +249,7 @@ export const Analisa: React.FC<AnalisaProps> = ({ records }) => {
           </p>
           <div className="flex items-center gap-1.5 text-xs text-[#2E7D32] font-semibold mt-3">
             <CheckCircle2 className="w-3.5 h-3.5" />
-            <span>Akumulasi {filteredRecords.length} transaksi invoice</span>
+            <span>Akumulasi {filteredRecords.length} invoice terdata</span>
           </div>
         </div>
 
@@ -231,7 +267,7 @@ export const Analisa: React.FC<AnalisaProps> = ({ records }) => {
             {formatRupiah(totalBulanIni)}
           </p>
           <div className="flex items-center gap-1.5 text-xs text-[#8C7D6B] font-medium mt-3">
-            <span>Periode: September 2026</span>
+            <span>Periode berjalan kalender aktif</span>
           </div>
         </div>
 
@@ -250,13 +286,13 @@ export const Analisa: React.FC<AnalisaProps> = ({ records }) => {
           </p>
           <div className="flex items-center gap-1.5 text-xs text-[#5C5248] font-medium mt-3">
             <Building2 className="w-3.5 h-3.5 text-[#8C7D6B]" />
-            <span>Rekanan aktif Linchub Network</span>
+            <span>Mitra aktif terdaftar</span>
           </div>
         </div>
 
       </div>
 
-      {/* Date Filter Bar (Dari - Sampai) applying to BOTH graphs */}
+      {/* Date Filter Bar (Dari - Sampai) */}
       <div className="bg-[#FFFFFF] border border-[#E8DFD3] rounded-3xl p-5 sm:p-6 shadow-xs">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           <div>
@@ -265,7 +301,7 @@ export const Analisa: React.FC<AnalisaProps> = ({ records }) => {
               FILTER RENTANG TANGGAL ANALISA
             </span>
             <p className="text-xs text-[#5C5248] mt-0.5">
-              Filter tanggal berlaku serentak untuk grafik bulanan dan kontribusi client
+              Filter tanggal berlaku serentak untuk semua grafik dan rincian fee
             </p>
           </div>
 
@@ -330,7 +366,6 @@ export const Analisa: React.FC<AnalisaProps> = ({ records }) => {
             <button
               onClick={handleResetDateFilter}
               className="w-full inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-[#FAF7F2] hover:bg-[#EAE2D4] border border-[#DDD2C1] rounded-xl text-xs font-semibold text-[#182622] transition-colors cursor-pointer"
-              title="Reset rentang tanggal"
             >
               <RotateCcw className="w-3.5 h-3.5" />
               <span>Reset</span>
@@ -399,7 +434,7 @@ export const Analisa: React.FC<AnalisaProps> = ({ records }) => {
           </div>
 
           <div className="mt-4 pt-3 border-t border-[#F0E9DF] flex items-center justify-between text-xs text-[#7A6F62]">
-            <span>Menampilkan tren 12 periode kalender</span>
+            <span>Menampilkan tren pendapatan bulanan</span>
             <span className="font-semibold text-[#182622]">
               Rata-rata: {formatRupiah(totalPendapatanSemua / 12)} / bln
             </span>
@@ -423,7 +458,7 @@ export const Analisa: React.FC<AnalisaProps> = ({ records }) => {
               </div>
             </div>
 
-            {/* Donut / Pie Chart */}
+            {/* Donut Chart */}
             <div className="h-64 w-full mt-4 flex items-center justify-center">
               {clientBreakdownData.pieData.length === 0 ? (
                 <p className="text-xs text-[#8C7D6B]">Tidak ada data client pada rentang ini.</p>
@@ -485,7 +520,109 @@ export const Analisa: React.FC<AnalisaProps> = ({ records }) => {
 
       </div>
 
-      {/* Comprehensive Client Ranking & Contribution Breakdown Table */}
+      {/* Rincian Kontribusi 5 Komponen Fee & Distribusi Cluster/Source */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+        {/* 5 Komponen Fee Contribution */}
+        <div className="lg:col-span-7 bg-[#FFFFFF] border border-[#E8DFD3] rounded-3xl p-6 shadow-xs">
+          <div className="flex items-center justify-between pb-4 border-b border-[#F0E9DF] mb-4">
+            <div className="flex items-center gap-2.5">
+              <Calculator className="w-5 h-5 text-[#C4A47C]" />
+              <div>
+                <h3 className="font-serif text-lg font-medium text-[#182622]">
+                  Analisa 5 Komponen Fee Pendapatan
+                </h3>
+                <p className="text-xs text-[#8C7D6B]">
+                  Perbandingan porsi Interview, OJT, Selesai OJT, Management, dan 45% Gaji Bruto
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="space-y-3.5">
+            {feeBreakdown.map((fee, idx) => (
+              <div key={fee.name} className="p-3 rounded-2xl bg-[#FAF7F2] border border-[#E8DFD3]">
+                <div className="flex items-center justify-between text-xs mb-1.5">
+                  <span className="font-bold text-[#182622]">{fee.name}</span>
+                  <div className="flex items-center gap-3">
+                    <span className="text-[#8C7D6B] font-semibold">{fee.pct.toFixed(1)}%</span>
+                    <span className="font-bold text-[#182622]">{formatRupiah(fee.amount)}</span>
+                  </div>
+                </div>
+                <div className="w-full bg-[#E8DFD3] h-2 rounded-full overflow-hidden">
+                  <div 
+                    className="bg-[#182622] h-full rounded-full transition-all duration-500" 
+                    style={{ width: `${Math.min(100, Math.max(0, fee.pct))}%` }} 
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Cluster & Sources Breakdown */}
+        <div className="lg:col-span-5 bg-[#FFFFFF] border border-[#E8DFD3] rounded-3xl p-6 shadow-xs flex flex-col justify-between">
+          <div>
+            <div className="flex items-center justify-between pb-4 border-b border-[#F0E9DF] mb-4">
+              <div className="flex items-center gap-2">
+                <Layers className="w-5 h-5 text-[#C4A47C]" />
+                <h3 className="font-serif text-lg font-medium text-[#182622]">
+                  Cluster &amp; Sources
+                </h3>
+              </div>
+            </div>
+
+            {/* Cluster (Stages vs Fractional) */}
+            <div className="mb-6">
+              <span className="text-[11px] font-bold text-[#8C7D6B] uppercase tracking-wider block mb-2">
+                Distribusi Cluster
+              </span>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="p-3.5 rounded-2xl bg-[#EAEFEA] border border-[#C8DCBE]">
+                  <span className="text-[10px] font-bold text-[#1E4334] uppercase block">Stages</span>
+                  <span className="font-serif text-base font-bold text-[#1E4334] mt-0.5 block">
+                    {formatRupiah(clusterBreakdown.stagesTotal)}
+                  </span>
+                </div>
+                <div className="p-3.5 rounded-2xl bg-[#F2EDFF] border border-[#D7C7F7]">
+                  <span className="text-[10px] font-bold text-[#4A3280] uppercase block">Fractional</span>
+                  <span className="font-serif text-base font-bold text-[#4A3280] mt-0.5 block">
+                    {formatRupiah(clusterBreakdown.fractionalTotal)}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Sources (INTERNAL, EKSTERNAL, MASSIVE) */}
+            <div>
+              <span className="text-[11px] font-bold text-[#8C7D6B] uppercase tracking-wider block mb-2">
+                Distribusi Sources
+              </span>
+              <div className="grid grid-cols-3 gap-2">
+                <div className="p-3 rounded-2xl bg-[#FAF7F2] border border-[#E8DFD3] text-center">
+                  <span className="text-[10px] font-bold text-[#5C5248] uppercase block">Internal</span>
+                  <span className="text-xs font-bold text-[#182622] mt-0.5 block truncate">
+                    {formatRupiah(sourcesBreakdown.internal)}
+                  </span>
+                </div>
+                <div className="p-3 rounded-2xl bg-[#FAF7F2] border border-[#E8DFD3] text-center">
+                  <span className="text-[10px] font-bold text-[#5C5248] uppercase block">Eksternal</span>
+                  <span className="text-xs font-bold text-[#182622] mt-0.5 block truncate">
+                    {formatRupiah(sourcesBreakdown.eksternal)}
+                  </span>
+                </div>
+                <div className="p-3 rounded-2xl bg-[#FAF7F2] border border-[#E8DFD3] text-center">
+                  <span className="text-[10px] font-bold text-[#5C5248] uppercase block">Massive</span>
+                  <span className="text-xs font-bold text-[#182622] mt-0.5 block truncate">
+                    {formatRupiah(sourcesBreakdown.massive)}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Comprehensive Client Ranking Table */}
       <div className="bg-[#FFFFFF] border border-[#E8DFD3] rounded-3xl p-6 shadow-xs">
         <div className="flex items-center justify-between pb-4 border-b border-[#F0E9DF] mb-4">
           <div className="flex items-center gap-2.5">
@@ -516,12 +653,11 @@ export const Analisa: React.FC<AnalisaProps> = ({ records }) => {
                 </div>
                 <div className="min-w-0">
                   <p className="text-sm font-bold text-[#182622] truncate">{client.name}</p>
-                  <p className="text-xs text-[#8C7D6B]">{client.count} Project Invoices Selesai</p>
+                  <p className="text-xs text-[#8C7D6B]">{client.count} Invoices Transaksi</p>
                 </div>
               </div>
 
               <div className="flex items-center gap-6 sm:justify-end">
-                {/* Progress bar visual */}
                 <div className="w-28 sm:w-36 bg-[#E8DFD3] h-2 rounded-full overflow-hidden hidden sm:block">
                   <div 
                     className="bg-[#182622] h-full rounded-full transition-all duration-500" 

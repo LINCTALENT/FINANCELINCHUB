@@ -5,22 +5,39 @@ export type PaymentStatus =
   | 'Termin 2'
   | 'Dibatalkan';
 
+export type ClusterType = 'Stages' | 'Fractional';
+export type SourceType = 'INTERNAL' | 'EKSTERNAL' | 'MASSIVE';
+
 export interface PendapatanRecord {
   id: string;
   namaClient: string;
-  jumlah: number;
+  code: string; // Code project yang diisi sendiri
+  cluster: ClusterType | string; // Stages | Fractional
+  sources: SourceType | string; // INTERNAL | EKSTERNAL | MASSIVE
+  
+  // Rincian Komponen Pendapatan (Rp)
+  feeInterview: number; // Fee Interview
+  feeOjt: number; // Fee OJT
+  feeSelesaiOjt: number; // Fee Selesai OJT
+  feeManagement: number; // Fee Management Jika Ada
+  feeGrossSalary: number; // Fee 45% Dari Gaji Bruto / Kotor
+  jumlah: number; // Total Akumulasi Pendapatan
+
   tanggal: string; // YYYY-MM-DD
   statusPembayaran: PaymentStatus;
-  jenisProject: string;
-  cluster: string;
-  sources: string;
   noInvoice: string;
-  bayarKemana: string;
-  atasNamaRekening: string;
-  bank: string;
+
+  // Informasi Bank Client & PIC
+  bank: string; // Bank Client (BCA, Mandiri, BNI, dll)
+  atasNamaRekening: string; // A.N PIC / Perusahaan Client
+  bayarKemana: string; // Rekening Penerima Linchub
+
   catatan?: string;
   createdAt: string;
   updatedAt?: string;
+
+  // Backward compatibility field
+  jenisProject?: string;
 }
 
 export type ActiveTab = 'input' | 'analisa';
