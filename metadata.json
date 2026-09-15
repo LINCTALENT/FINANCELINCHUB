@@ -1,0 +1,6 @@
+{
+  "name": "Linchub Finance - Input Pendapatan & Analisa",
+  "description": "Aplikasi admin finance untuk input data pendapatan client, analisa pendapatan bulanan dan performa client dengan database Google Sheets / Airtable dan autentikasi Firebase.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
